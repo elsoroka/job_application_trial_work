@@ -21,45 +21,6 @@ def __():
 
 
 @app.cell
-def __():
-    """data = pd.read_csv("merged_data.csv",
-                       converters={'ts_event':pd.to_datetime,
-                                   'bid_fill'      : float,
-                                   'ask_fill'      : float,
-                                   'Signed Volume' : float,
-                                   'price'         : float,
-                                   'best_bid'      : float,
-                                   'best_ask'      : float,
-                                   'mid_price'     : float,
-                                  }
-                      )
-    # the data is not too big to read in at once, but if it was we would use chunksize=something to do it in bits
-
-    data.dropna(inplace=True)
-    """
-    return
-
-
-@app.cell
-def __():
-    # Binning the data into 10 second batches because this is done in the Handbook of Price Impact Modeling
-    # This also allows us to use the efficient Pandas exponentially weighted moving average,
-    # which only works for evenly spaced timeseries data.
-    """binned_data = data.groupby(pd.Grouper(key='ts_event', freq='10s'), dropna=True).agg(
-                    {'bid_fill'      : "sum",
-                     'ask_fill'      : "sum",
-                     'Signed Volume' : "sum",
-                     'price'         : "mean",
-                     'best_bid'      : "min",
-                     'best_ask'      : "max",
-                     'mid_price'     : "mean",
-                    }
-                )
-                """
-    return
-
-
-@app.cell
 def __(mo):
     mo.md(
         r"""
@@ -158,6 +119,39 @@ def __(np, scipy):
         r_squared,
         sigma,
     )
+
+
+@app.cell
+def __(BETA_N, LAMBDA_N, compute_pnl, init_params, np, r_squared):
+    # for plotting
+    def ratio(lm=LAMBDA_N, beta=BETA_N, risk=0.5):
+        p = init_params(risk, lm=lm, beta=beta)
+        pnl = compute_pnl(p)
+        r2 = r_squared(p, p.beta, lm, p.gamma)
+        return pnl/np.sqrt(r2)
+    return (ratio,)
+
+
+@app.cell
+def __(np, plt, ratio):
+    lm_range = np.arange(0.005,0.04,0.001)
+    beta_range = np.arange(2.0, 7.0, 0.1)
+
+    fig, axs = plt.subplots(3,2)
+    fig.suptitle("Task 2")
+    for (i,r) in enumerate([0.5, 1.3, 5.3]):
+        axs[i][1].set_xlabel(f"lambda, risk={r}")
+        axs[i][0].set_xlabel(f"beta, risk={r}")
+
+    for (i,r) in enumerate([0.5, 1.3, 5.3]):
+
+        axs[i][1].plot(lm_range, [ratio(lm=lm_i, risk=r) for lm_i in lm_range])
+        axs[i][0].plot(beta_range, [ratio(beta=beta_i, risk=r) for beta_i in beta_range])
+
+    plt.tight_layout()
+    plt.savefig("task2.pdf")
+    plt.show()
+    return axs, beta_range, fig, i, lm_range, r
 
 
 @app.cell
